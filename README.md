@@ -48,14 +48,17 @@ Align the APK.
 * After all the files have been copied, reboot the device:  
 `adb reboot`
 
-### Installation with Flashable zip
+### Installation with Flashable zip (not tested)
 * Create zip
+
 `7za a -tzip -r lineage-dialer-rro.zip ./flashable/*`
 
 * Sign
+
 `java -jar ./bin/zipsigner.jar lineage-dialer-rro.zip lineage-dialer-rro-signed.zip`
 
 
 ## Resources:
 update-binary: https://github.com/arovlad/bromite-webview-overlay
+
 zip-signer: https://forum.xda-developers.com/t/dev-template-complete-shell-script-flashable-zip-replacement-signing-script.2934449/
