@@ -2,7 +2,12 @@
 
 OUTFD=/proc/self/fd/$2;
 ZIPFILE="$3";
-DIR=$(dirname "$ZIPFILE");
+
+BOOTMODE=false;
+ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true;
+$BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true;
+
+[ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
 
 INSTALLDIR=/tmp/INSTALLDIR
 rm -rf $INSTALLDIR
@@ -29,6 +34,7 @@ ui_print() {
 }
 # show_progress <amount> <time>
 show_progress() { echo "progress $1 $2" >> $OUTFD; }
+
 find_slot() {
   local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
   [ "$slot" ] || slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
@@ -168,6 +174,61 @@ umount_all() {
     umount -l /cache;
   fi) 2>/dev/null;
 }
+setup_env() {
+  $BOOTMODE && return 1;
+  mount -o bind /dev/urandom /dev/random;
+  if [ -L /etc ]; then
+    setup_mountpoint /etc;
+    cp -af /etc_link/* /etc;
+    sed -i 's; / ; /system_root ;' /etc/fstab;
+  fi;
+  umount_all;
+  mount_all;
+  OLD_LD_PATH=$LD_LIBRARY_PATH;
+  OLD_LD_PRE=$LD_PRELOAD;
+  OLD_LD_CFG=$LD_CONFIG_FILE;
+  unset LD_LIBRARY_PATH LD_PRELOAD LD_CONFIG_FILE;
+  if [ ! "$(getprop 2>/dev/null)" ]; then
+    getprop() {
+      local propdir propfile propval;
+      for propdir in / /system_root /system /vendor /odm /product; do
+        for propfile in default.prop build.prop; do
+          if [ "$propval" ]; then
+            break 2;
+          else
+            propval="$(file_getprop $propdir/$propfile $1 2>/dev/null)";
+          fi;
+        done;
+      done;
+      if [ "$propval" ]; then
+        echo "$propval";
+      else
+        echo "";
+      fi;
+    }
+  elif [ ! "$(getprop ro.build.type 2>/dev/null)" ]; then
+    getprop() {
+      ($(which getprop) | grep "$1" | cut -d[ -f3 | cut -d] -f1) 2>/dev/null;
+    }
+  fi;
+}
+restore_env() {
+  $BOOTMODE && return 1;
+  local dir;
+  unset -f getprop;
+  [ "$OLD_LD_PATH" ] && export LD_LIBRARY_PATH=$OLD_LD_PATH;
+  [ "$OLD_LD_PRE" ] && export LD_PRELOAD=$OLD_LD_PRE;
+  [ "$OLD_LD_CFG" ] && export LD_CONFIG_FILE=$OLD_LD_CFG;
+  umount_all;
+  [ -L /etc_link ] && rm -rf /etc/*;
+  (for dir in /apex /system /system_root /etc; do
+    if [ -L "${dir}_link" ]; then
+      rmdir $dir;
+      mv -f ${dir}_link $dir;
+    fi;
+  done;
+  umount -l /dev/random) 2>/dev/null;
+}
 
 cleanup() {
   rm -rf $INSTALLDIR
@@ -176,9 +237,11 @@ cleanup() {
 ######
 ui_print " "
 
-ui_print "Mounting partitions"
-mount_all
+ui_print "Setup environment"
+setup_env;
 
+# insert script here
+cd $INSTALLDIR
 ui_print "Extracting files"
 unzip -o "$ZIPFILE" -d "$INSTALLDIR"
 rm -rf META-INF
@@ -197,8 +260,9 @@ set_con system_file /system/addon.d/99-lineage-dialer-rro.sh
 ui_print "Cleaning"
 cleanup
 
-ui_print "Unmounting partitions"
-umount_all
+cd /;
+ui_print "Restore environment"
+restore_env;
 
 ui_print "Done!";
-exit 0
+
