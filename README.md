@@ -48,7 +48,7 @@ Align the APK.
 * After all the files have been copied, reboot the device:  
 `adb reboot`
 
-### Installation with Flashable zip (not tested)
+### Installation with Flashable zip (not tested/recommended)
 * Create zip:  
 `7za a -tzip -r lineage-dialer-rro.zip ./flashable/*`
 
