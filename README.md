@@ -49,12 +49,10 @@ Align the APK.
 `adb reboot`
 
 ### Installation with Flashable zip (not tested)
-* Create zip
-
+* Create zip:
 `7za a -tzip -r lineage-dialer-rro.zip ./flashable/*`
 
-* Sign
-
+* Sign:
 `java -jar ./bin/zipsigner.jar lineage-dialer-rro.zip lineage-dialer-rro-signed.zip`
 
 
