@@ -180,7 +180,6 @@ ui_print "Mounting partitions"
 mount_all
 
 ui_print "Extracting files"
-unzip -o "$ZIP"
 unzip -o "$ZIPFILE" -d "$INSTALLDIR"
 rm -rf META-INF
 
