@@ -1,13 +1,9 @@
 #!/sbin/sh
 #
-# ADDOND_VERSION=2
+# ADDOND_VERSION=3
 #
-# /system/addon.d/99-lineage-dialer-rro.sh
-# During a LineageOS upgrade, this script backs up /vendor/overlay/lineage-dialer-rro.apk,
-# /system is formatted and reinstalled, then the file is restored.
+# /system/addon.d/20-lineage-dialer-rro.sh
 #
-# Copied from 50-lineage.sh
-
 . /tmp/backuptool.functions
 
 list_files() {
@@ -19,14 +15,14 @@ EOF
 case "$1" in
   backup)
     list_files | while read FILE DUMMY; do
-      backup_file $S/"$FILE"
+      backup_file $S/$FILE
     done
   ;;
   restore)
     list_files | while read FILE REPLACEMENT; do
       R=""
       [ -n "$REPLACEMENT" ] && R="$S/$REPLACEMENT"
-      [ -f "$C/$S/$FILE" ] && restore_file $S/"$FILE" "$R"
+      [ -f "$C/$S/$FILE" ] && restore_file $S/$FILE $R
     done
   ;;
   pre-backup)
@@ -39,6 +35,11 @@ case "$1" in
     # Stub
   ;;
   post-restore)
-    # Stub
+    for i in $(list_files); do
+      f=$(get_output_path "$S/$i")
+      chown root:root $f
+      chmod 644 $f
+      chmod 755 $(dirname $f)
+    done
   ;;
 esac
