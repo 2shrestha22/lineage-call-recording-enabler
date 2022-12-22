@@ -1,268 +1,185 @@
 #!/sbin/sh
 
-OUTFD=/proc/self/fd/$2;
-ZIPFILE="$3";
+# SCRIPT FROM MindTheGapps FLASHABLE ZIP
 
-BOOTMODE=false;
-ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true;
-$BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true;
-
-[ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
-
-INSTALLDIR=/tmp/INSTALLDIR
-rm -rf $INSTALLDIR
-mkdir -p $INSTALLDIR
-
+OUTFD="/proc/self/fd/$2"
+ZIP=$3
 
 set_con() {
   chcon -h u:object_r:"$1":s0 $2
   chcon u:object_r:"$1":s0 $2
 }
-set_owner() {
-  chown $1:$2 $3
-}
+
 set_perm() {
   chmod $1 $2
 }
-# ui_print "<message>" ["<message 2>" ...]
-ui_print() {
-  while [ "$1" ]; do
-    echo -e "ui_print $1
-      ui_print" >> $OUTFD;
-    shift;
-  done;
-}
-# show_progress <amount> <time>
-show_progress() { echo "progress $1 $2" >> $OUTFD; }
 
-find_slot() {
-  local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-  [ "$slot" ] || slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-  if [ ! "$slot" ]; then
-    slot=$(getprop ro.boot.slot 2>/dev/null);
-    [ "$slot" ] || slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-    [ "$slot" ] && slot=_$slot;
-  fi;
-  [ "$slot" ] && echo "$slot";
+set_owner() {
+  chown $1:$2 $3
 }
-setup_mountpoint() {
-  [ -L $1 ] && mv -f $1 ${1}_link;
-  if [ ! -d $1 ]; then
-    rm -f $1;
-    mkdir -p $1;
-  fi;
-}
-is_mounted() { mount | grep -q " $1 "; }
-mount_apex() {
-  [ -d /system_root/system/apex ] || return 1;
-  local apex dest loop minorx num;
-  setup_mountpoint /apex;
-  minorx=1;
-  [ -e /dev/block/loop1 ] && minorx=$(ls -l /dev/block/loop1 | awk '{ print $6 }');
-  num=0;
-  for apex in /system_root/system/apex/*; do
-    dest=/apex/$(basename $apex .apex);
-    [ "$dest" == /apex/com.android.runtime.release ] && dest=/apex/com.android.runtime;
-    mkdir -p $dest;
-    case $apex in
-      *.apex)
-        unzip -qo $apex apex_payload.img -d /apex;
-        mv -f /apex/apex_payload.img $dest.img;
-        mount -t ext4 -o ro,noatime $dest.img $dest 2>/dev/null;
-        if [ $? != 0 ]; then
-          while [ $num -lt 64 ]; do
-            loop=/dev/block/loop$num;
-            (mknod $loop b 7 $((num * minorx));
-            losetup $loop $dest.img) 2>/dev/null;
-            num=$((num + 1));
-            losetup $loop | grep -q $dest.img && break;
-          done;
-          mount -t ext4 -o ro,loop,noatime $loop $dest;
-          if [ $? != 0 ]; then
-            losetup -d $loop 2>/dev/null;
-          fi;
-        fi;
-      ;;
-      *) mount -o bind $apex $dest;;
-    esac;
-  done;
-  export ANDROID_RUNTIME_ROOT=/apex/com.android.runtime;
-  export ANDROID_TZDATA_ROOT=/apex/com.android.tzdata;
-  export BOOTCLASSPATH=/apex/com.android.runtime/javalib/core-oj.jar:/apex/com.android.runtime/javalib/core-libart.jar:/apex/com.android.runtime/javalib/okhttp.jar:/apex/com.android.runtime/javalib/bouncycastle.jar:/apex/com.android.runtime/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/android.test.base.jar:/system/framework/telephony-ext.jar:/apex/com.android.conscrypt/javalib/conscrypt.jar:/apex/com.android.media/javalib/updatable-media.jar;
-}
-umount_apex() {
-  [ -d /apex ] || return 1;
-  local dest loop;
-  for dest in $(find /apex -type d -mindepth 1 -maxdepth 1); do
-    if [ -f $dest.img ]; then
-      loop=$(mount | grep $dest | cut -d" " -f1);
-    fi;
-    (umount -l $dest;
-    losetup -d $loop) 2>/dev/null;
-  done;
-  rm -rf /apex 2>/dev/null;
-  unset ANDROID_RUNTIME_ROOT ANDROID_TZDATA_ROOT BOOTCLASSPATH;
-}
-mount_all() {
-  if ! is_mounted /cache; then
-    mount /cache 2>/dev/null && UMOUNT_CACHE=1;
-  fi;
-  if ! is_mounted /data; then
-    mount /data && UMOUNT_DATA=1;
-  fi;
-  mount -o ro -t auto /vendor 2>/dev/null;
-  setup_mountpoint $ANDROID_ROOT;
-  if ! is_mounted $ANDROID_ROOT; then
-    mount -o ro -t auto $ANDROID_ROOT 2>/dev/null;
-  fi;
-  case $ANDROID_ROOT in
-    /system_root) setup_mountpoint /system;;
-    /system)
-      if ! is_mounted /system && ! is_mounted /system_root; then
-        setup_mountpoint /system_root;
-        mount -o ro -t auto /system_root;
-      elif [ -f /system/system/build.prop ]; then
-        setup_mountpoint /system_root;
-        mount --move /system /system_root;
-      fi;
-      if [ $? != 0 ]; then
-        (umount /system;
-        umount -l /system) 2>/dev/null;
-        if [ -d /dev/block/mapper ]; then
-          [ -e /dev/block/mapper/system ] || local slot=$(find_slot);
-          mount -o ro -t auto /dev/block/mapper/vendor$slot /vendor;
-          mount -o ro -t auto /dev/block/mapper/system$slot /system_root;
-        else
-          [ -e /dev/block/bootdevice/by-name/system ] || local slot=$(find_slot);
-          mount -o ro -t auto /dev/block/bootdevice/by-name/vendor$slot /vendor 2>/dev/null;
-          mount -o ro -t auto /dev/block/bootdevice/by-name/system$slot /system_root;
-        fi;
-      fi;
-    ;;
-  esac;
-  if is_mounted /system_root; then
-    mount_apex;
-    if [ -f /system_root/build.prop ]; then
-      mount -o bind /system_root /system;
-    else
-      mount -o bind /system_root/system /system;
-    fi;
-  fi;
-}
-umount_all() {
-  (if [ ! -d /postinstall/tmp ]; then
-    umount /system;
-    umount -l /system;
-    if [ -e /system_root ]; then
-      umount /system_root;
-      umount -l /system_root;
-    fi;
-  fi;
-  umount /mnt/system;
-  umount -l /mnt/system;
-  umount_apex;
-  umount /vendor;
-  umount -l /vendor;
-  umount /mnt/vendor;
-  umount -l /mnt/vendor;
-  if [ "$UMOUNT_DATA" ]; then
-    umount /data;
-    umount -l /data;
-  fi;
-  if [ "$UMOUNT_CACHE" ]; then
-    umount /cache;
-    umount -l /cache;
-  fi) 2>/dev/null;
-}
-setup_env() {
-  $BOOTMODE && return 1;
-  mount -o bind /dev/urandom /dev/random;
-  if [ -L /etc ]; then
-    setup_mountpoint /etc;
-    cp -af /etc_link/* /etc;
-    sed -i 's; / ; /system_root ;' /etc/fstab;
-  fi;
-  umount_all;
-  mount_all;
-  OLD_LD_PATH=$LD_LIBRARY_PATH;
-  OLD_LD_PRE=$LD_PRELOAD;
-  OLD_LD_CFG=$LD_CONFIG_FILE;
-  unset LD_LIBRARY_PATH LD_PRELOAD LD_CONFIG_FILE;
-  if [ ! "$(getprop 2>/dev/null)" ]; then
-    getprop() {
-      local propdir propfile propval;
-      for propdir in / /system_root /system /vendor /odm /product; do
-        for propfile in default.prop build.prop; do
-          if [ "$propval" ]; then
-            break 2;
-          else
-            propval="$(file_getprop $propdir/$propfile $1 2>/dev/null)";
-          fi;
-        done;
-      done;
-      if [ "$propval" ]; then
-        echo "$propval";
-      else
-        echo "";
-      fi;
-    }
-  elif [ ! "$(getprop ro.build.type 2>/dev/null)" ]; then
-    getprop() {
-      ($(which getprop) | grep "$1" | cut -d[ -f3 | cut -d] -f1) 2>/dev/null;
-    }
-  fi;
-}
-restore_env() {
-  $BOOTMODE && return 1;
-  local dir;
-  unset -f getprop;
-  [ "$OLD_LD_PATH" ] && export LD_LIBRARY_PATH=$OLD_LD_PATH;
-  [ "$OLD_LD_PRE" ] && export LD_PRELOAD=$OLD_LD_PRE;
-  [ "$OLD_LD_CFG" ] && export LD_CONFIG_FILE=$OLD_LD_CFG;
-  umount_all;
-  [ -L /etc_link ] && rm -rf /etc/*;
-  (for dir in /apex /system /system_root /etc; do
-    if [ -L "${dir}_link" ]; then
-      rmdir $dir;
-      mv -f ${dir}_link $dir;
-    fi;
-  done;
-  umount -l /dev/random) 2>/dev/null;
+
+ui_print() {
+  echo "ui_print $1" > "$OUTFD";
+  echo "ui_print" > "$OUTFD";
 }
 
 cleanup() {
-  rm -rf $INSTALLDIR
+  ui_print "Cleaning up files"
+  rm -rf $TMP/system
+  rm -rf $TMP/bin
+
+  ui_print "Unmounting partitions"
+  umount -l "$SYSTEM_MNT"
+  umount -l /vendor || true
 }
 
-######
-ui_print " "
+error() {
+  ui_print "$1"
+  cleanup
+  exit 1
+}
 
-ui_print "Setup environment"
-setup_env;
+error_mounting() {
+  error "Could not mount $1! Aborting"
+}
 
-# insert script here
-cd $INSTALLDIR
+get_block_for_mount_point() {
+  grep -v "^#" /etc/recovery.fstab | grep "[[:blank:]]$1[[:blank:]]" | tail -n1 | tr -s [:blank:] ' ' | cut -d' ' -f1
+}
+
+find_block() {
+  local name="$1"
+  local fstab_entry=$(get_block_for_mount_point "/$name")
+  # P-SAR hacks
+  [ -z "$fstab_entry" ] && [ "$name" = "system" ] && fstab_entry=$(get_block_for_mount_point "/")
+  [ -z "$fstab_entry" ] && [ "$name" = "system" ] && fstab_entry=$(get_block_for_mount_point "/system_root")
+
+  local dev
+  if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
+    if [ -n "$fstab_entry" ]; then
+      dev="${BLK_PATH}/${fstab_entry}${SLOT_SUFFIX}"
+    else
+      dev="${BLK_PATH}/${name}${SLOT_SUFFIX}"
+    fi
+  else
+    if [ -n "$fstab_entry" ]; then
+      dev="${fstab_entry}${SLOT_SUFFIX}"
+    else
+      dev="${BLK_PATH}/${name}${SLOT_SUFFIX}"
+    fi
+  fi
+
+  if [ -b "$dev" ]; then
+    echo "$dev"
+  fi
+}
+
+
+ui_print "**********************"
+ui_print "Lineage Dialer RRO installer"
+ui_print "**********************"
+
 ui_print "Extracting files"
-unzip -o "$ZIPFILE" -d "$INSTALLDIR"
+TMP=/tmp
+cd "$TMP" || exit 1
+unzip -o "$ZIP"
 rm -rf META-INF
 
-ui_print "Copying Lineage Dialer Overlay"
-cp $INSTALLDIR/vendor/overlay/lineage-dialer-rro.apk /vendor/overlay/lineage-dialer-rro.apk
+ui_print "Mounting partitions"
 
-ui_print "Copying addon.d script"
-cp $INSTALLDIR/system/addon.d/99-lineage-dialer-rro.sh /system/addon.d/99-lineage-dialer-rro.sh
+# Ensure system is unmounted so mounting succeeds
+umount /system || umount /mnt/system || true
+umount /vendor || true
 
-ui_print "Setting correct file permission"
-set_perm 755 /system/addon.d/99-lineage-dialer-rro.sh
-set_owner root root /system/addon.d/99-lineage-dialer-rro.sh
-set_con system_file /system/addon.d/99-lineage-dialer-rro.sh
+# Find partitions
+DYNAMIC_PARTITIONS=$(getprop ro.boot.dynamic_partitions)
+if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
+    BLK_PATH="/dev/block/mapper"
+else
+    BLK_PATH=/dev/block/bootdevice/by-name
+fi
 
-ui_print "Cleaning"
+CURRENTSLOT=$(getprop ro.boot.slot_suffix)
+if [ ! -z "$CURRENTSLOT" ]; then
+  if [ "$CURRENTSLOT" == "_a" ]; then
+    SLOT_SUFFIX="_a"
+  else
+    SLOT_SUFFIX="_b"
+  fi
+fi
+
+SYSTEM_BLOCK=$(find_block "system")
+VENDOR_BLOCK=$(find_block "vendor")
+
+# Disable rw protection on dynamic partitions
+if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
+  blockdev --setrw "$SYSTEM_BLOCK"
+  if [ -n "$VENDOR_BLOCK" ]; then
+    blockdev --setrw "$VENDOR_BLOCK"
+  fi
+fi
+
+# Mount and define SYSTEM_OUT
+SYSTEM_MNT=/mnt/system
+mkdir -p "$SYSTEM_MNT" || true
+if mount -o rw "$SYSTEM_BLOCK" "$SYSTEM_MNT"; then
+ui_print "$SYSTEM_MNT mounted"
+else
+error_mounting "$SYSTEM_MNT"
+fi
+# System out is actual /system when devices is booted,
+# while or recovery it can be /mnt/system/system, so the file structure look like
+# /mnt/system/system -> /system
+# /mnt/system/system/bin -> /system/bin
+# /mnt/system/vendor -> /vendor
+
+SYSTEM_OUT="${SYSTEM_MNT}/system"
+
+# Ignore {vendor} block devices in case they are symlinks
+# This is common on devices where maintainers have chosen not to use
+# real partitions because of their size being too small to be useful
+if [ -L "${SYSTEM_MNT}/vendor" ]; then
+VENDOR_BLOCK=""
+fi
+
+if [ -n "$VENDOR_BLOCK" ]; then
+  mkdir /vendor || true
+  if mount -o rw "$VENDOR_BLOCK" /vendor; then
+    ui_print "/vendor mounted"
+  else
+    error_mounting "/vendor"
+  fi
+fi
+
+# Enter inside Flashable system.
+cd system || exit 1
+
+ui_print "Preparing files for copying"
+# Set correct permission for dirs
+for d in $(find . -mindepth 1 -type d -type d); do
+  set_perm 0755 $d
+  set_owner root root $d
+done
+# Set correct permission for files
+for f in $(find . -type f); do
+  type=$(echo "$f" | sed 's/.*\.//')
+  if [ "$type" == "sh" ] || [ "$type" == "$f" ]; then
+    set_perm 0755 $f
+  else
+    set_perm 0644 $f
+  fi
+  set_owner root root $f
+  set_con system_file $f
+done
+
+ui_print "Copying files"
+cp --preserve=a -r ./* "${SYSTEM_OUT}/"
+if [ -n "$VENDOR_BLOCK" ]; then
+  cp --preserve=a -r ./vendor/* /vendor
+fi
+
+
 cleanup
 
-cd /;
-ui_print "Restore environment"
-restore_env;
-
-ui_print "Done!";
-
+ui_print "Done!"
+exit 0
