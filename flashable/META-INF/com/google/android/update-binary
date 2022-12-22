@@ -1,6 +1,6 @@
 #!/sbin/sh
 
-# SCRIPT FROM MindTheGapps FLASHABLE ZIP
+# SCRIPT FROM MINDTHEGAPPS FLASHABLE ZIP
 
 OUTFD="/proc/self/fd/$2"
 ZIP=$3
@@ -75,9 +75,9 @@ find_block() {
 }
 
 
-ui_print "**********************"
+ui_print "****************************"
 ui_print "Lineage Dialer RRO installer"
-ui_print "**********************"
+ui_print "****************************"
 
 ui_print "Extracting files"
 TMP=/tmp
