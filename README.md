@@ -48,15 +48,20 @@ Align the APK.
 * After all the files have been copied, reboot the device:  
 `adb reboot`
 
-### Installation with Flashable zip (not tested/recommended)
+### Installation with Flashable zip
 * Create zip:  
 `7za a -tzip -r lineage-dialer-rro.zip ./flashable/*`
 
 * Sign:  
 `java -jar ./bin/zipsigner.jar lineage-dialer-rro.zip lineage-dialer-rro-signed.zip`
 
+* Reboot to sideload mode:  
+`adb reboot sideload`
+
+* Sideload zip:  
+`adb sideload lineage-dialer-rro-signed.zip`
 
 ## Resources:
-update-binary: https://github.com/arovlad/bromite-webview-overlay
+update-binary: MindTheGapps (http://downloads.codefi.re/jdcteam/javelinanddart/gapps)
 
-zip-signer: https://forum.xda-developers.com/t/dev-template-complete-shell-script-flashable-zip-replacement-signing-script.2934449/
+zipsigner: https://github.com/topjohnwu/Magisk/tree/v20.4/signing, https://forum.xda-developers.com/t/dev-template-complete-shell-script-flashable-zip-replacement-signing-script.2934449/

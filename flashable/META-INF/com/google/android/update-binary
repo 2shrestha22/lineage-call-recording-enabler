@@ -1,46 +1,185 @@
 #!/sbin/sh
 
-# Exit immediately if the device is not Treble-enabled
-if [ ! $(getprop ro.treble.enabled) ]
-    then echo -e "ui_print Your device is not Treble-enabled!" >> /proc/self/fd/${2}
-    exit 1
+# SCRIPT FROM MINDTHEGAPPS FLASHABLE ZIP
+
+OUTFD="/proc/self/fd/$2"
+ZIP=$3
+
+set_con() {
+  chcon -h u:object_r:"$1":s0 $2
+  chcon u:object_r:"$1":s0 $2
+}
+
+set_perm() {
+  chmod $1 $2
+}
+
+set_owner() {
+  chown $1:$2 $3
+}
+
+ui_print() {
+  echo "ui_print $1" > "$OUTFD";
+  echo "ui_print" > "$OUTFD";
+}
+
+cleanup() {
+  ui_print "Cleaning up files"
+  rm -rf $TMP/system
+  rm -rf $TMP/bin
+
+  ui_print "Unmounting partitions"
+  umount -l "$SYSTEM_MNT"
+  umount -l /vendor || true
+}
+
+error() {
+  ui_print "$1"
+  cleanup
+  exit 1
+}
+
+error_mounting() {
+  error "Could not mount $1! Aborting"
+}
+
+get_block_for_mount_point() {
+  grep -v "^#" /etc/recovery.fstab | grep "[[:blank:]]$1[[:blank:]]" | tail -n1 | tr -s [:blank:] ' ' | cut -d' ' -f1
+}
+
+find_block() {
+  local name="$1"
+  local fstab_entry=$(get_block_for_mount_point "/$name")
+  # P-SAR hacks
+  [ -z "$fstab_entry" ] && [ "$name" = "system" ] && fstab_entry=$(get_block_for_mount_point "/")
+  [ -z "$fstab_entry" ] && [ "$name" = "system" ] && fstab_entry=$(get_block_for_mount_point "/system_root")
+
+  local dev
+  if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
+    if [ -n "$fstab_entry" ]; then
+      dev="${BLK_PATH}/${fstab_entry}${SLOT_SUFFIX}"
+    else
+      dev="${BLK_PATH}/${name}${SLOT_SUFFIX}"
+    fi
+  else
+    if [ -n "$fstab_entry" ]; then
+      dev="${fstab_entry}${SLOT_SUFFIX}"
+    else
+      dev="${BLK_PATH}/${name}${SLOT_SUFFIX}"
+    fi
+  fi
+
+  if [ -b "$dev" ]; then
+    echo "$dev"
+  fi
+}
+
+
+ui_print "****************************"
+ui_print "Lineage Dialer RRO installer"
+ui_print "****************************"
+
+ui_print "Extracting files"
+TMP=/tmp
+cd "$TMP" || exit 1
+unzip -o "$ZIP"
+rm -rf META-INF
+
+ui_print "Mounting partitions"
+
+# Ensure system is unmounted so mounting succeeds
+umount /system || umount /mnt/system || true
+umount /vendor || true
+
+# Find partitions
+DYNAMIC_PARTITIONS=$(getprop ro.boot.dynamic_partitions)
+if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
+    BLK_PATH="/dev/block/mapper"
+else
+    BLK_PATH=/dev/block/bootdevice/by-name
 fi
 
-# Exit immediately if a command fails
-set -e
-
-# Extract the package to a temporary location
-unzip -oq ${3} -d "/tmp/LineageDialerRRO"
-
-# Create faux mountpoints
-mkdir /picodroid_system
-mkdir /picodroid_vendor
-
-# Mount the neccesary partitions
-mount -o rw $(readlink -f $(cd /dev && find /dev/block -type l -name system$(getprop ro.boot.slot_suffix) | head -n 1 )) /picodroid_system
-mount -o rw $(readlink -f $(cd /dev && find /dev/block -type l -name vendor$(getprop ro.boot.slot_suffix) | head -n 1 )) /picodroid_vendor
-
-# Copy the overlay to the appropriate location
-cp /tmp/LineageDialerRRO/vendor/overlay/lineage-dialer-rro.apk /picodroid_vendor/overlay
-
-# Copy the OTA survival script to the appropriate location
-if [ -d /picodroid_system/system/addon.d ]
-    then cp /tmp/LineageDialerRRO/system/addon.d/99-lineage-dialer-rro.sh /picodroid_system/system/addon.d
+CURRENTSLOT=$(getprop ro.boot.slot_suffix)
+if [ ! -z "$CURRENTSLOT" ]; then
+  if [ "$CURRENTSLOT" == "_a" ]; then
+    SLOT_SUFFIX="_a"
+  else
+    SLOT_SUFFIX="_b"
+  fi
 fi
 
-# Make the script executable
-chmod 755 /picodroid_system/system/addon.d/99-lineage-dialer-rro.sh
+SYSTEM_BLOCK=$(find_block "system")
+VENDOR_BLOCK=$(find_block "vendor")
 
-# Unmount the previously mounted partitions
-umount -l /picodroid_system
-umount -l /picodroid_vendor
+# Disable rw protection on dynamic partitions
+if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
+  blockdev --setrw "$SYSTEM_BLOCK"
+  if [ -n "$VENDOR_BLOCK" ]; then
+    blockdev --setrw "$VENDOR_BLOCK"
+  fi
+fi
 
-# Delete de faux mountpoints
-rmdir /picodroid_system
-rmdir /picodroid_vendor
+# Mount and define SYSTEM_OUT
+SYSTEM_MNT=/mnt/system
+mkdir -p "$SYSTEM_MNT" || true
+if mount -o rw "$SYSTEM_BLOCK" "$SYSTEM_MNT"; then
+ui_print "$SYSTEM_MNT mounted"
+else
+error_mounting "$SYSTEM_MNT"
+fi
+# System out is actual /system when devices is booted,
+# while or recovery it can be /mnt/system/system, so the file structure look like
+# /mnt/system/system -> /system
+# /mnt/system/system/bin -> /system/bin
+# /mnt/system/vendor -> /vendor
 
-# Clean up the installation files
-rm -rf /tmp/LineageDialerRRO
+SYSTEM_OUT="${SYSTEM_MNT}/system"
 
-# Inform the user that the update has been successful
-echo -e "ui_print Update successfully installed!" >> /proc/self/fd/${2}
+# Ignore {vendor} block devices in case they are symlinks
+# This is common on devices where maintainers have chosen not to use
+# real partitions because of their size being too small to be useful
+if [ -L "${SYSTEM_MNT}/vendor" ]; then
+VENDOR_BLOCK=""
+fi
+
+if [ -n "$VENDOR_BLOCK" ]; then
+  mkdir /vendor || true
+  if mount -o rw "$VENDOR_BLOCK" /vendor; then
+    ui_print "/vendor mounted"
+  else
+    error_mounting "/vendor"
+  fi
+fi
+
+# Enter inside Flashable system.
+cd system || exit 1
+
+ui_print "Preparing files for copying"
+# Set correct permission for dirs
+for d in $(find . -mindepth 1 -type d -type d); do
+  set_perm 0755 $d
+  set_owner root root $d
+done
+# Set correct permission for files
+for f in $(find . -type f); do
+  type=$(echo "$f" | sed 's/.*\.//')
+  if [ "$type" == "sh" ] || [ "$type" == "$f" ]; then
+    set_perm 0755 $f
+  else
+    set_perm 0644 $f
+  fi
+  set_owner root root $f
+  set_con system_file $f
+done
+
+ui_print "Copying files"
+cp --preserve=a -r ./* "${SYSTEM_OUT}/"
+if [ -n "$VENDOR_BLOCK" ]; then
+  cp --preserve=a -r ./vendor/* /vendor
+fi
+
+
+cleanup
+
+ui_print "Done!"
+exit 0
