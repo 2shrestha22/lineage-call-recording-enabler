@@ -75,6 +75,6 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 `adb sideload lineage-dialer-rro-signed.zip`
 
 ## Resources:
-update-binary: MindTheGapps (http://downloads.codefi.re/jdcteam/javelinanddart/gapps)
+update-binary: [MindTheGapps](https://gitlab.com/MindTheGapps/)
 
-zipsigner: https://github.com/topjohnwu/Magisk/tree/v20.4/signing, https://forum.xda-developers.com/t/dev-template-complete-shell-script-flashable-zip-replacement-signing-script.2934449/
+zipsigner: [Magisk (source)](https://github.com/topjohnwu/Magisk/tree/v20.4/signing), [XDA (binary)](https://forum.xda-developers.com/t/dev-template-complete-shell-script-flashable-zip-replacement-signing-script.2934449/)
