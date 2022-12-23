@@ -33,7 +33,7 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 
 ## How to install
 
-### Manual installation
+### a. Manual
 * Restart ADB with root privileges:  
 `adb root`
 
@@ -61,7 +61,7 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 * After all the files have been copied, reboot the device:  
 `adb reboot`
 
-### Installation with Flashable zip
+### b. Flashable zip
 * Create zip:  
 `7za a -tzip -r lineage-dialer-rro.zip ./flashable/*`
 
