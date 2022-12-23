@@ -1,8 +1,20 @@
-## How to build
+## Lineage Call Recording Enabler (Lineage Dialer RRO)
+This is a [Runtime Resource Overlay](https://source.android.com/docs/core/runtime/rros) for the dialer app in LineageOS to enable call recording in all countries.
+
+LineageOS native call recording is enabled or disabled depending on your current location and the those countries are listed here, https://github.com/LineageOS/android_packages_apps_Dialer/blob/lineage-19.1/java/com/android/dialer/callrecord/res/xml/call_record_states.xml. One can enable or disable call recording by updating those values and this is what this overlay does.
+
+## Runtime Resource Overlay
+> A runtime resource overlay (RRO) is a package that changes the resource values of a target package at runtime. For example, an app installed on the system image might change its behavior based upon the value of a resource. Rather than hardcoding the resource value at build time, an RRO installed on a different partition can change the values of the app's resources at runtime.
+One can enable or disable call recording by updating this file. However this overlay package changes the resource values of a target package at runtime.
+
+https://source.android.com/docs/core/runtime/rros
+
+## How to build overlay (optional)
+**There is a prebuilt overlay APK, `flashable/system/vendor/overlay/lineage-dialer-rro.apk` so you don't need to build it again.**
 
 Generate unsigned and unaligned APK.
 ```
-~/Android/Sdk/build-tools/33.0.0/aapt package -M AndroidManifest.xml -S res/ \
+aapt package -M AndroidManifest.xml -S res/ \
     -I ~/Android/Sdk/platforms/android-33/android.jar \
     -F lineage-dialer-rro.apk.u
 ```
@@ -15,8 +27,9 @@ jarsigner -keystore ~/.android/debug.keystore \
 
 Align the APK.
 ```
-~/Android/Sdk/build-tools/33.0.0/zipalign 4 lineage-dialer-rro.apk.u lineage-dialer-rro.apk
+zipalign 4 lineage-dialer-rro.apk.u lineage-dialer-rro.apk
 ```
+You can find `aapt` and `zipalign` inside build-tool of Android SDK installation dir. e.g. `~/Android/Sdk/build-tools/33.0.0/`
 
 ## How to install
 
