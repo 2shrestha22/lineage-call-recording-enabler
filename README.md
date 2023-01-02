@@ -63,18 +63,25 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 
 ### b. Flashable zip
 * Create zip:  
-`7za a -tzip -r lineage-dialer-rro.zip ./flashable/*`
+`7za a -tzip -r lineage-dialer-rro_recovery.zip ./recovery/*`
 
 * Sign:  
-`java -jar ./bin/zipsigner.jar lineage-dialer-rro.zip lineage-dialer-rro-signed.zip`
+`java -jar ./bin/zipsigner.jar lineage-dialer-rro_recovery.zip lineage-dialer-rro-signed_recovery.zip`
 
 * Reboot to sideload mode:  
 `adb reboot sideload`
 
 * Sideload zip:  
-`adb sideload lineage-dialer-rro-signed.zip`
+`adb sideload lineage-dialer-rro-signed_recovery.zip`
+
+### c. Magisk
+* Create zip:  
+`7za a -tzip -r lineage-dialer-rro_magisk.zip ./magisk/*`
+
 
 ## Resources:
 update-binary: [MindTheGapps](https://gitlab.com/MindTheGapps/)
+
+magisk: [Developer Guides](https://topjohnwu.github.io/Magisk/guides.html)
 
 zipsigner: [Magisk (source)](https://github.com/topjohnwu/Magisk/tree/v20.4/signing), [XDA (binary)](https://forum.xda-developers.com/t/dev-template-complete-shell-script-flashable-zip-replacement-signing-script.2934449/)
