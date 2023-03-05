@@ -76,14 +76,8 @@ find_block() {
 
 
 ui_print "****************************"
-ui_print "Lineage Dialer RRO installer"
+ui_print "Lineage Dialer RRO"
 ui_print "****************************"
-
-ui_print "Extracting files"
-TMP=/tmp
-cd "$TMP" || exit 1
-unzip -o "$ZIP"
-rm -rf META-INF
 
 ui_print "Mounting partitions"
 
@@ -151,7 +145,29 @@ if [ -n "$VENDOR_BLOCK" ]; then
   fi
 fi
 
-# Enter inside Flashable system.
+# Uninstaller 
+if echo "$3" | grep -q "uninstall"; then
+  ui_print "Uninstalling"
+  rm "${SYSTEM_OUT}/addon.d/20-lineage-dialer-rro.sh"
+  rm "${SYSTEM_OUT}/vendor/overlay/lineage-dialer-rro.apk"
+  if [ -n "$VENDOR_BLOCK" ]; then
+    rm "/vendor/overlay/lineage-dialer-rro.apk"
+  fi
+  
+  ui_print "Done uninstalling!"
+  ui_print "Unmounting partitions"
+  umount -l "$SYSTEM_MNT"
+  umount -l /vendor || true
+  exit 0
+fi
+
+ui_print "Extracting files"
+TMP=/tmp
+cd "$TMP" || exit 1
+unzip -o "$ZIP"
+rm -rf META-INF
+
+# Enter inside extracted files system.
 cd system || exit 1
 
 ui_print "Preparing files for copying"
