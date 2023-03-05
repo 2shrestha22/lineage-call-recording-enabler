@@ -71,13 +71,15 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 * Reboot to sideload mode:  
 `adb reboot sideload`
 
-* Sideload zip:  
+* Sideload zip (or flash from recovery):  
 `adb sideload lineage-dialer-rro-signed_recovery.zip`
+
+* Uninstall
+rename the file to `uninstall.zip` and flash.
 
 ### c. Magisk
 * Create zip:  
 `7za a -tzip -r lineage-dialer-rro_magisk.zip ./magisk/*`
-
 
 ## Resources:
 update-binary: [MindTheGapps](https://gitlab.com/MindTheGapps/)
