@@ -1,0 +1,23 @@
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Zip files for Magisk.
+        run: 7za a -tzip -r lineage-dialer-rro_magisk.zip ./magisk/*
+
+      - name: Zip files for recovery.
+        run: 7za a -tzip -r lineage-dialer-rro_recovery.zip ./recovery/*
+        
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}
+          path: lineage-dialer-rro_*.zip
