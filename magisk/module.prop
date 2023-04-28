@@ -1,6 +1,6 @@
 id=lineage_dialer_rro
 name=Lineage Dialer RRO
-version=v0.1.0
+version=v1.1.1
 versionCode=1
 author=2shrestha22
 description=Enables call recording in Lineage OS Dialer for all countries.
