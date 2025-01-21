@@ -9,31 +9,24 @@ One can enable or disable call recording by updating this file. However this ove
 
 https://source.android.com/docs/core/runtime/rros
 
-## How to build overlay (optional)
-**There is a prebuilt overlay APK, `flashable/system/vendor/overlay/lineage-dialer-rro.apk` so you don't need to build it again.**
+## Usage
+Get flashable zip or magisk module from here https://github.com/2shrestha22/lineage-call-recording-enabler/releases
 
-Generate unsigned and unaligned APK.
-```
-aapt package -M AndroidManifest.xml -S res/ \
-    -I ~/Android/Sdk/platforms/android-33/android.jar \
-    -F lineage-dialer-rro.apk.u
-```
+### a. Flashable zip
+* Reboot to sideload mode:  
+`adb reboot sideload`
 
-Sign the APK. Password for debug keystore is android.
-```
-jarsigner -keystore ~/.android/debug.keystore \
-    lineage-dialer-rro.apk.u androiddebugkey
-```
+* Sideload zip (or flash from recovery):  
+`adb sideload lineage-dialer-rro-signed_recovery.zip`
 
-Align the APK.
-```
-zipalign 4 lineage-dialer-rro.apk.u lineage-dialer-rro.apk
-```
-You can find `aapt` and `zipalign` inside build-tool of Android SDK installation dir. e.g. `~/Android/Sdk/build-tools/33.0.0/`
+* To uninstall rename the file to `uninstall.zip` and sideload.
 
-## How to install
+### b. Magisk
+* If you have magisk installed you can use the magisk module.
 
-### a. Manual
+### c. Manual
+Overlay APK can be found in `flashable/system/vendor/overlay/lineage-dialer-rro.apk`.
+
 * Restart ADB with root privileges:  
 `adb root`
 
@@ -61,23 +54,38 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 * After all the files have been copied, reboot the device:  
 `adb reboot`
 
-### b. Flashable zip
+## Build it yourself (optional)
+You can compile overlay APK and package it to flashabel zip magisk module yourself. A prebuilt overlay APK can be found in `flashable/system/vendor/overlay/lineage-dialer-rro.apk`.
+
+### Compile overlay APK
+
+Generate unsigned and unaligned APK.
+```
+aapt package -M AndroidManifest.xml -S res/ \
+    -I ~/Android/Sdk/platforms/android-33/android.jar \
+    -F lineage-dialer-rro.apk.u
+```
+
+Sign the APK. Password for debug keystore is android.
+```
+jarsigner -keystore ~/.android/debug.keystore \
+    lineage-dialer-rro.apk.u androiddebugkey
+```
+
+Align the APK.
+```
+zipalign 4 lineage-dialer-rro.apk.u lineage-dialer-rro.apk
+```
+You can find `aapt` and `zipalign` inside build-tool of Android SDK installation dir. e.g. `~/Android/Sdk/build-tools/33.0.0/`
+
+### Create flashable zip
 * Create zip:  
 `7za a -tzip -r lineage-dialer-rro_recovery.zip ./recovery/*`
 
 * Sign:  
 `java -jar ./bin/zipsigner.jar lineage-dialer-rro_recovery.zip lineage-dialer-rro-signed_recovery.zip`
 
-* Reboot to sideload mode:  
-`adb reboot sideload`
-
-* Sideload zip (or flash from recovery):  
-`adb sideload lineage-dialer-rro-signed_recovery.zip`
-
-* Uninstall
-rename the file to `uninstall.zip` and flash.
-
-### c. Magisk
+### Create magisk module
 * Create zip:  
 `7za a -tzip -r lineage-dialer-rro_magisk.zip ./magisk/*`
 
