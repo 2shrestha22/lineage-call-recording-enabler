@@ -12,7 +12,10 @@ https://source.android.com/docs/core/runtime/rros
 ## Usage
 Get flashable zip or magisk module from here https://github.com/2shrestha22/lineage-call-recording-enabler/releases
 
-### a. Flashable zip
+### a. Magisk (RECOMMENDED)
+* If you have magisk installed you can use the magisk module. Download the module from releases.
+
+### b. Flashable zip (DEPRECATED, may not work)
 * Reboot to sideload mode:  
 `adb reboot sideload`
 
@@ -21,11 +24,8 @@ Get flashable zip or magisk module from here https://github.com/2shrestha22/line
 
 * To uninstall rename the file to `uninstall.zip` and sideload.
 
-### b. Magisk
-* If you have magisk installed you can use the magisk module.
-
-### c. Manual
-Overlay APK can be found in `flashable/system/vendor/overlay/lineage-dialer-rro.apk`.
+### c. Manual (try this when nothing worked)
+Overlay APK can be found in `recovery/system/vendor/overlay/lineage-dialer-rro.apk`.
 
 * Restart ADB with root privileges:  
 `adb root`
@@ -54,8 +54,8 @@ Overlay APK can be found in `flashable/system/vendor/overlay/lineage-dialer-rro.
 * After all the files have been copied, reboot the device:  
 `adb reboot`
 
-## Build it yourself (optional)
-You can compile overlay APK and package it to flashabel zip magisk module yourself. A prebuilt overlay APK can be found in `flashable/system/vendor/overlay/lineage-dialer-rro.apk`.
+## Build it yourself (OPTIONAL)
+You can compile overlay APK and package it to flashabel zip magisk module yourself. A prebuilt overlay APK can be found in `recovery/system/vendor/overlay/lineage-dialer-rro.apk`.
 
 ### Compile overlay APK
 
