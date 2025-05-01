@@ -1,6 +1,7 @@
 ## Lineage Call Recording Enabler (Lineage Dialer RRO)
 This is a [Runtime Resource Overlay](https://source.android.com/docs/core/runtime/rros) for the dialer app in LineageOS to enable call recording in all countries.
 
+
 LineageOS native call recording is enabled or disabled depending on your current location and the those countries are listed here, https://github.com/LineageOS/android_packages_apps_Dialer/blob/lineage-19.1/java/com/android/dialer/callrecord/res/xml/call_record_states.xml. One can enable or disable call recording by updating those values and this is what this overlay does.
 
 ## Runtime Resource Overlay
