@@ -6,7 +6,7 @@ LineageOS native call recording is enabled or disabled depending on your current
 
 ## Runtime Resource Overlay
 > A runtime resource overlay (RRO) is a package that changes the resource values of a target package at runtime. For example, an app installed on the system image might change its behavior based upon the value of a resource. Rather than hardcoding the resource value at build time, an RRO installed on a different partition can change the values of the app's resources at runtime.
-One can enable or disable call recording by updating this file. However this overlay package changes the resource values of a target package at runtime.
+One can enable or disable call recording by updating this file. However, this overlay package changes the resource values of a target package at runtime.
 
 https://source.android.com/docs/core/runtime/rros
 
