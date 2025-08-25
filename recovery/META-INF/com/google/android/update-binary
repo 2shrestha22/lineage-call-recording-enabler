@@ -1,7 +1,5 @@
 #!/sbin/sh
 
-# SCRIPT FROM MINDTHEGAPPS FLASHABLE ZIP
-
 OUTFD="/proc/self/fd/$2"
 ZIP=$3
 
@@ -27,10 +25,11 @@ cleanup() {
   ui_print "Cleaning up files"
   rm -rf $TMP/system
   rm -rf $TMP/bin
+  rm $TMP/toybox
 
   ui_print "Unmounting partitions"
   umount -l "$SYSTEM_MNT"
-  umount -l /vendor || true
+  umount -l /product || true
 }
 
 error() {
@@ -74,26 +73,39 @@ find_block() {
   fi
 }
 
+ui_print "Extracting files"
+TMP=/tmp
+cd "$TMP"
+unzip -o "$ZIP"
+rm -rf META-INF
 
-ui_print "****************************"
-ui_print "Lineage Dialer RRO"
-ui_print "****************************"
+ui_print "Setting up environment"
+TOYBOX="${TMP}/toybox"
+chmod +x "$TOYBOX"
+
+TOYS_PATH="${TMP}/bin"
+rm -rf "$TOYS_PATH";
+$TOYBOX install -d "$TOYS_PATH"
+for toy in $($TOYBOX); do
+  $TOYBOX ln -sf "$TOYBOX" "${TOYS_PATH}/${toy}"
+done
+PATH="${TOYS_PATH}:${PATH}"
 
 ui_print "Mounting partitions"
 
 # Ensure system is unmounted so mounting succeeds
 umount /system || umount /mnt/system || true
-umount /vendor || true
+umount /product || true
 
 # Find partitions
-DYNAMIC_PARTITIONS=$(getprop ro.boot.dynamic_partitions)
+DYNAMIC_PARTITIONS=`getprop ro.boot.dynamic_partitions`
 if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
     BLK_PATH="/dev/block/mapper"
 else
     BLK_PATH=/dev/block/bootdevice/by-name
 fi
 
-CURRENTSLOT=$(getprop ro.boot.slot_suffix)
+CURRENTSLOT=`getprop ro.boot.slot_suffix`
 if [ ! -z "$CURRENTSLOT" ]; then
   if [ "$CURRENTSLOT" == "_a" ]; then
     SLOT_SUFFIX="_a"
@@ -103,13 +115,13 @@ if [ ! -z "$CURRENTSLOT" ]; then
 fi
 
 SYSTEM_BLOCK=$(find_block "system")
-VENDOR_BLOCK=$(find_block "vendor")
+PRODUCT_BLOCK=$(find_block "product")
 
 # Disable rw protection on dynamic partitions
 if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
   blockdev --setrw "$SYSTEM_BLOCK"
-  if [ -n "$VENDOR_BLOCK" ]; then
-    blockdev --setrw "$VENDOR_BLOCK"
+  if [ -n "$PRODUCT_BLOCK" ]; then
+    blockdev --setrw "$PRODUCT_BLOCK"
   fi
 fi
 
@@ -121,63 +133,32 @@ ui_print "$SYSTEM_MNT mounted"
 else
 error_mounting "$SYSTEM_MNT"
 fi
-# System out is actual /system when devices is booted,
-# while or recovery it can be /mnt/system/system, so the file structure look like
-# /mnt/system/system -> /system
-# /mnt/system/system/bin -> /system/bin
-# /mnt/system/vendor -> /vendor
-
 SYSTEM_OUT="${SYSTEM_MNT}/system"
 
-# Ignore {vendor} block devices in case they are symlinks
+# Ignore {product} block devices in case they are symlinks
 # This is common on devices where maintainers have chosen not to use
 # real partitions because of their size being too small to be useful
-if [ -L "${SYSTEM_MNT}/vendor" ]; then
-VENDOR_BLOCK=""
+if [ -L "${SYSTEM_MNT}/product" ]; then
+PRODUCT_BLOCK=""
 fi
 
-if [ -n "$VENDOR_BLOCK" ]; then
-  mkdir /vendor || true
-  if mount -o rw "$VENDOR_BLOCK" /vendor; then
-    ui_print "/vendor mounted"
+if [ -n "$PRODUCT_BLOCK" ]; then
+  mkdir /product || true
+  if mount -o rw "$PRODUCT_BLOCK" /product; then
+    ui_print "/product mounted"
   else
-    error_mounting "/vendor"
+    error_mounting "/product"
   fi
 fi
 
-# Uninstaller 
-if echo "$3" | grep -q "uninstall"; then
-  ui_print "Uninstalling"
-  rm "${SYSTEM_OUT}/addon.d/20-lineage-dialer-rro.sh"
-  rm "${SYSTEM_OUT}/vendor/overlay/lineage-dialer-rro.apk"
-  if [ -n "$VENDOR_BLOCK" ]; then
-    rm "/vendor/overlay/lineage-dialer-rro.apk"
-  fi
-  
-  ui_print "Done uninstalling!"
-  ui_print "Unmounting partitions"
-  umount -l "$SYSTEM_MNT"
-  umount -l /vendor || true
-  exit 0
-fi
-
-ui_print "Extracting files"
-TMP=/tmp
-cd "$TMP" || exit 1
-unzip -o "$ZIP"
-rm -rf META-INF
-
-# Enter inside extracted files system.
-cd system || exit 1
+cd system
 
 ui_print "Preparing files for copying"
-# Set correct permission for dirs
-for d in $(find . -mindepth 1 -type d -type d); do
+for d in `find . -mindepth 1 -type d -type d`; do
   set_perm 0755 $d
   set_owner root root $d
 done
-# Set correct permission for files
-for f in $(find . -type f); do
+for f in `find . -type f`; do
   type=$(echo "$f" | sed 's/.*\.//')
   if [ "$type" == "sh" ] || [ "$type" == "$f" ]; then
     set_perm 0755 $f
@@ -190,10 +171,9 @@ done
 
 ui_print "Copying files"
 cp --preserve=a -r ./* "${SYSTEM_OUT}/"
-if [ -n "$VENDOR_BLOCK" ]; then
-  cp --preserve=a -r ./vendor/* /vendor
+if [ -n "$PRODUCT_BLOCK" ]; then
+  cp --preserve=a -r ./product/* /product
 fi
-
 
 cleanup
 

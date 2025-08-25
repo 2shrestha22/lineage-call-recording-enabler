@@ -2,13 +2,13 @@
 #
 # ADDOND_VERSION=3
 #
-# /system/addon.d/20-lineage-dialer-rro.sh
+# /system/addon.d/20-call-recording.sh
 #
 . /tmp/backuptool.functions
 
 list_files() {
 cat <<EOF
-vendor/overlay/lineage-dialer-rro.apk
+product/overlay/DialerCallRecordingAllowed.apk
 EOF
 }
 
