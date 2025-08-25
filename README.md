@@ -16,19 +16,17 @@ https://source.android.com/docs/core/runtime/rros
 
 Get flashable zip or magisk module from here https://github.com/2shrestha22/lineage-call-recording-enabler/releases
 
-### a. Magisk (RECOMMENDED)
+### a. Magisk
 
 - If you have magisk installed you can use the magisk module. Download the module from releases.
 
-### b. Flashable zip (DEPRECATED, may not work)
+### b. Flashable zip
 
 - Reboot to sideload mode:  
   `adb reboot sideload`
 
 - Sideload zip (or flash from recovery):  
-  `adb sideload lineage-dialer-rro-signed_recovery.zip`
-
-- To uninstall rename the file to `uninstall.zip` and sideload.
+  `adb sideload lineage-dialer-rro_recovery.zip`
 
 ### c. Manual (try this when nothing worked)
 
