@@ -26,7 +26,7 @@ Get flashable zip or magisk module from here https://github.com/2shrestha22/line
   `adb reboot sideload`
 
 - Sideload zip (or flash from recovery):  
-  `adb sideload lineage-dialer-rro_recovery.zip`
+  `adb sideload lineage_dialer_rro-recovery-aarch64.zip`
 
 ### c. Manual (try this when nothing worked)
 
@@ -90,16 +90,14 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 
 ### Create flashable zip
 
+- Copy `toybox` for your device architecture to `./recovery`, eg. `cp toybox/aarch64/toybox /recovery`
 - Create zip:  
-  `7za a -tzip -r lineage-dialer-rro_recovery.zip ./recovery/*`
-
-- Sign:  
-  `java -jar ./bin/zipsigner.jar lineage-dialer-rro_recovery.zip lineage-dialer-rro-signed_recovery.zip`
+  `7za a -tzip -r lineage_dialer_rro-recovery-aarch64.zip ./recovery/*`
 
 ### Create magisk module
 
 - Create zip:  
-  `7za a -tzip -r lineage-dialer-rro_magisk.zip ./magisk/*`
+  `7za a -tzip -r lineage_dialer_rro-magisk.zip ./magisk/*`
 
 ## Resources:
 
