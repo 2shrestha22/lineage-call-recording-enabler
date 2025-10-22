@@ -10,16 +10,54 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Copy prebuilt overlay.
+        run: |
+          mkdir -p ./magisk/system/product/overlay/
+          mkdir -p ./recovery/system/product/overlay/
+          cp ./prebuilt/overlay/*.apk ./magisk/system/product/overlay/
+          cp ./prebuilt/overlay/*.apk ./recovery/system/product/overlay/
+
+      - name: Update Magisk module version info
+        run: |
+          VERSION_TAG=${GITHUB_REF#refs/tags/}
+          sed -i "s/^version=.*/version=${VERSION_TAG}/" ./magisk/module.prop
+          sed -i "s/^versionCode=.*/versionCode=${GITHUB_RUN_NUMBER}/" ./magisk/module.prop
+
       - name: Zip files for Magisk.
         run: 7za a -tzip -r lineage_dialer_rro-magisk.zip ./magisk/*
 
       - name: Zip files for recovery (arm).
-        run: mv ./toybox/arm/toybox ./recovery/toybox && 7za a -tzip -r lineage_dialer_rro-recovery-arm.zip ./recovery/*
+        run: |
+          mv ./toybox/arm/toybox ./recovery/toybox
+          7za a -tzip -r lineage_dialer_rro-recovery-arm.zip ./recovery/*
 
       - name: Zip files for recovery (arm64).
-        run: mv ./toybox/arm64/toybox ./recovery/toybox && 7za a -tzip -r lineage_dialer_rro-recovery-arm64.zip ./recovery/*
+        run: |
+          mv ./toybox/arm64/toybox ./recovery/toybox
+          7za a -tzip -r lineage_dialer_rro-recovery-arm64.zip ./recovery/*
+
+      - name: Create update.json
+        run: |
+          VERSION_TAG=${GITHUB_REF#refs/tags/}
+          cat <<EOF > update.json
+          {
+            "version": "${VERSION_TAG}",
+            "versionCode": ${GITHUB_RUN_NUMBER},
+            "zipUrl": "https://github.com/2shrestha22/lineage-call-recording-enabler/releases/download/${VERSION_TAG}/lineage_dialer_rro-magisk.zip",
+            "changelog": "https://raw.githubusercontent.com/2shrestha22/lineage-call-recording-enabler/refs/heads/main/CHANGELOG.md"
+          }
+          EOF
+
+      - name: Prepare release body
+        run: |
+          VERSION_TAG=${GITHUB_REF#refs/tags/}
+          # Extract the section for the current tag
+          awk "/^## $VERSION_TAG$/ {flag=1; next} /^## / {flag=0} flag" CHANGELOG.md | sed '/^$/d' > release_body.txt
 
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          files: lineage-dialer-rro_*.zip
+          files: |
+            lineage_dialer_rro-*.zip
+            update.json
+          body_path: release_body.txt
