@@ -4,4 +4,4 @@ version=
 versionCode=
 author=2shrestha22
 description=Enables call recording in LineageOS dialer across all countries.
-updateJson=https://github.com/2shrestha22/lineage-call-recording-enabler/releases/download/latest/update.json
+updateJson=https://github.com/2shrestha22/lineage-call-recording-enabler/releases/latest/download/update.json

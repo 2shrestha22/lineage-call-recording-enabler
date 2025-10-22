@@ -1,3 +1,7 @@
+## v1.2.4
+
+- fix invalid magisk module update json url
+
 ## v1.2.3
 
 - fully automate release workflow
