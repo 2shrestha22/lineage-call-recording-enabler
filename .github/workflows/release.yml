@@ -2,20 +2,23 @@ name: release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Zip files for Magisk.
-        run: 7za a -tzip -r lineage-dialer-rro_magisk.zip ./magisk/*
 
-      - name: Zip files for recovery.
-        run: 7za a -tzip -r lineage-dialer-rro_recovery.zip ./recovery/*
-        
+      - name: Zip files for Magisk.
+        run: 7za a -tzip -r lineage_dialer_rro-magisk.zip ./magisk/*
+
+      - name: Zip files for recovery (arm).
+        run: mv ./toybox/arm/toybox ./recovery/toybox && 7za a -tzip -r lineage_dialer_rro-recovery-arm.zip ./recovery/*
+
+      - name: Zip files for recovery (arm64).
+        run: mv ./toybox/arm64/toybox ./recovery/toybox && 7za a -tzip -r lineage_dialer_rro-recovery-arm64.zip ./recovery/*
+
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
