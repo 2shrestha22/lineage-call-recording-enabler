@@ -106,3 +106,5 @@ update-binary: [MindTheGapps](https://gitlab.com/MindTheGapps/vendor_gapps/-/blo
 magisk: [Developer Guides](https://topjohnwu.github.io/Magisk/guides.html)
 
 zipsigner: [Magisk (source)](https://github.com/topjohnwu/Magisk/tree/v20.4/signing), [XDA (binary)](https://forum.xda-developers.com/t/dev-template-complete-shell-script-flashable-zip-replacement-signing-script.2934449/)
+
+toybox: [landley/toybox](https://github.com/landley/toybox)
