@@ -30,7 +30,7 @@ Get flashable zip or magisk module from here https://github.com/2shrestha22/line
 
 ### c. Manual (try this when nothing worked)
 
-Overlay APK can be found in `recovery/system/product/overlay/DialerCallRecordingAllowed.apk`.
+Overlay APK can be found in `prebuilt/overlay/DialerCallRecordingAllowed.apk`.
 
 - Restart ADB with root privileges:  
   `adb root`
@@ -91,6 +91,7 @@ You can find `aapt` and `zipalign` inside build-tool of Android SDK installation
 ### Create flashable zip
 
 - Copy `toybox` for your device architecture to `./recovery`, eg. `cp toybox/arm64/toybox /recovery`
+- Copy prebuilt overlay apk to `recovery/system/product/overlay/`
 - Create zip:  
   `7za a -tzip -r lineage_dialer_rro-recovery-arm64.zip ./recovery/*`
 
