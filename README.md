@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This module is not actively maintained and may not work on recent LineageOS versions. BCR (https://github.com/chenxiaolong/BCR) is recommned to use. See https://github.com/2shrestha22/lineage-call-recording-enabler/issues/11
+
 ## Lineage Call Recording Enabler (Lineage Dialer RRO)
 
 This is a [Runtime Resource Overlay](https://source.android.com/docs/core/runtime/rros) for the dialer app in LineageOS to enable call recording in all countries.
